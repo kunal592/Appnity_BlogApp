@@ -1,0 +1,360 @@
+generator client {
+ provider = "prisma-client-js"
+ previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+ provider = "postgresql"
+ url = env("DATABASE_URL") // Make sure the pgcrypto/uuid-ossp extension is available on your DB if needed.
+}
+
+enum Role {
+ USER
+ ADMIN
+}
+
+enum PostStatus {
+ DRAFT
+ PUBLISHED
+ ARCHIVED
+}
+
+enum PostVisibility {
+ PUBLIC
+ UNLISTED
+ PRIVATE
+}
+
+enum NotificationType {
+ LIKE
+ COMMENT
+ FOLLOW
+ MENTION
+ NEW_POST
+ BOOKMARK
+ ADMIN_ALERT
+}
+
+enum EntityType {
+ POST
+ COMMENT
+ USER
+ PAYMENT
+}
+
+enum LikeTarget {
+ POST
+ COMMENT
+}
+
+model User {
+ id String @id @default(uuid())
+ role Role @default(USER)
+ email String @unique
+ emailVerified DateTime?
+
+ username String? @unique
+ name String?
+ bio String?
+
+ profileImage String?
+
+ socialLinks Json? // { twitter: "...", github: "...", linkedin: "..." }
+
+ providerAccount Account[] // NextAuth relation (Account model)
+ sessions Session[] // NextAuth sessions
+
+ posts Post[] @relation("authorPosts")
+ comments Comment[] @relation("authorComments")
+ likes Like[]
+
+ bookmarks Bookmark[]
+
+ followsGiven Follow[] @relation("follower")
+ followsReceived Follow[] @relation("following")
+
+ notifications Notification[] @relation("notificationsReceived")
+
+ payments Payment[]
+
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+
+ @@index([username])
+ @@index([email])
+}
+
+model Post {
+ id String @id @default(uuid())
+
+ author User? @relation("authorPosts", fields: [authorId], references: [id], onDelete: SetNull)
+ authorId String?
+
+ title String
+ slug String @unique
+ thumbnailUrl String?
+ excerpt String?
+ content String // store markdown content
+ renderedHtml String? // optional pre-rendered HTML (if you want)
+
+ status PostStatus @default(DRAFT)
+ visibility PostVisibility @default(PUBLIC)
+
+ isFeatured Boolean @default(false)
+ readingTime Int? // minutes estimate
+
+ postTags PostTag[] // relation field for explicit join table
+
+ likes Like[]
+
+ comments Comment[]
+
+ bookmarks Bookmark[]
+
+ shares Share[]
+
+ viewsCount Int @default(0)
+ likesCount Int @default(0)
+ commentsCount Int @default(0)
+ bookmarksCount Int @default(0)
+ sharesCount Int @default(0)
+
+ publishedAt DateTime?
+
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+
+ @@index([slug])
+ @@index([publishedAt])
+ @@index([authorId])
+}
+
+model Tag {
+ id String @id @default(uuid())
+ name String @unique
+ slug String @unique
+ description String?
+
+ posts PostTag[]
+
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+
+ @@index([name])
+}
+
+model PostTag {
+ id String @id @default(uuid())
+
+ post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+ postId String
+
+ tag Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+ tagId String
+
+ createdAt DateTime @default(now())
+
+ @@unique([postId, tagId])
+ @@index([tagId])
+ @@index([postId])
+}
+
+model Comment {
+ id String @id @default(uuid())
+
+ post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+ postId String
+
+ author User? @relation("authorComments", fields: [authorId], references: [id], onDelete: SetNull)
+ authorId String?
+
+ parent Comment? @relation("commentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+ parentId String?
+
+ replies Comment[] @relation("commentReplies")
+
+ content String // markdown content
+ renderedHtml String? // optional pre-rendered HTML
+
+ isEdited Boolean @default(false)
+ isDeleted Boolean @default(false)
+
+ likes Like[]
+
+ likesCount Int @default(0)
+
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+
+ @@index([postId])
+ @@index([authorId])
+}
+
+model Like {
+ id String @id @default(uuid())
+
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ userId String
+
+ target LikeTarget
+
+ post Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
+ postId String?
+
+ comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+ commentId String?
+
+ createdAt DateTime @default(now())
+
+ // ensure a user can't like the same target twice
+ @@unique([userId, postId], name: "unique_user_post_like", map: "unique_user_post_like") // will ignore if postId null
+ @@unique([userId, commentId], name: "unique_user_comment_like", map: "unique_user_comment_like") // will ignore if commentId null
+
+ @@index([userId])
+ @@index([postId])
+ @@index([commentId])
+}
+
+model Bookmark {
+ id String @id @default(uuid())
+
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ userId String
+
+ post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+ postId String
+
+ createdAt DateTime @default(now())
+
+ @@unique([userId, postId])
+ @@index([userId])
+ @@index([postId])
+}
+
+model Share {
+ id String @id @default(uuid())
+
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ userId String
+
+ post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+ postId String
+
+ platform String? // e.g., "twitter", "facebook", "whatsapp", "internal"
+ metadata Json? // { url, text, extra }
+
+ createdAt DateTime @default(now())
+
+ @@index([userId])
+ @@index([postId])
+}
+
+model Follow {
+ id String @id @default(uuid())
+
+ follower User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+ followerId String
+
+ following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+ followingId String
+
+ createdAt DateTime @default(now())
+
+ @@unique([followerId, followingId])
+ @@index([followerId])
+ @@index([followingId])
+}
+
+model Notification {
+ id String @id @default(uuid())
+
+ recipient User @relation("notificationsReceived", fields: [recipientId], references: [id], onDelete: Cascade)
+ recipientId String
+
+ actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+ actorId String?
+
+ type NotificationType
+
+ entityType EntityType?
+ entityId String? // e.g., postId, commentId, userId, paymentId
+
+ data Json? // arbitrary payload (used by client to render)
+
+ isRead Boolean @default(false)
+
+ createdAt DateTime @default(now())
+
+ @@index([recipientId, isRead])
+ @@index([actorId])
+ @@index([type])
+}
+
+model Payment {
+ id String @id @default(uuid())
+
+ user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+ userId String?
+
+ razorpayOrderId String? @unique
+ razorpayPaymentId String? @unique
+
+ status String // e.g., created, paid, failed, refunded
+ amount Int // in smallest currency unit (paise)
+ currency String @default("INR")
+
+ metadata Json?
+
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+
+ @@index([userId])
+ @@index([status])
+}
+
+//////////////////////////////////////////
+// NextAuth compatibility models (recommended)
+//////////////////////////////////////////
+
+model Account {
+ id String @id @default(cuid())
+
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ userId String
+
+ type String
+ provider String
+ providerAccountId String
+
+ refresh_token String?
+ access_token String?
+ expires_at Int?
+ token_type String?
+ scope String?
+ id_token String?
+ session_state String?
+
+ @@unique([provider, providerAccountId])
+ @@index([userId])
+}
+
+model Session {
+ id String @id @default(cuid())
+ sessionToken String @unique
+
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ userId String
+
+ expires DateTime
+
+ @@index([userId])
+}
+
+model VerificationToken {
+ identifier String
+ token String @unique
+
+ expires DateTime
+
+ @@unique([identifier, token])
+}
