@@ -1,7 +1,10 @@
 import Link from 'next/link'
-import { Home, Info } from 'lucide-react'
+import { Home, Info, LogIn, LogOut, PlusSquare } from 'lucide-react'
+import { auth, signIn, signOut } from "@/app/api/auth/[...nextauth]/route"
 
-export default function Header() {
+export default async function Header() {
+  const session = await auth()
+
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-6 py-4">
@@ -27,6 +30,37 @@ export default function Header() {
                 <span>About</span>
               </div>
             </Link>
+            {session?.user && (
+              <Link href="/create">
+                <div className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
+                  <PlusSquare className="w-5 h-5 mr-2"/>
+                  <span>Create Post</span>
+                </div>
+              </Link>
+            )}
+            {
+              session?.user ? (
+                <form action={async () => {
+                  'use server'
+                  await signOut()
+                }}>
+                  <button className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
+                    <LogOut className="w-5 h-5 mr-2"/>
+                    <span>Logout</span>
+                  </button>
+                </form>
+              ) : (
+                <form action={async () => {
+                  'use server'
+                  await signIn('github')
+                }}>
+                  <button className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
+                    <LogIn className="w-5 h-5 mr-2"/>
+                    <span>Login</span>
+                  </button>
+                </form>
+              )
+            }
           </nav>
           <div className="md:hidden">
             {/* Mobile menu button */}

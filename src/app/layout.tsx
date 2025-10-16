@@ -1,14 +1,12 @@
-import './globals.css'
+'use client'
+
+import '../globals.css'
 import { Inter } from 'next/font/google'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import { SessionProvider } from 'next-auth/react'
 
 const inter = Inter({ subsets: ['latin'] })
-
-export const metadata = {
-  title: 'Appnity Blog',
-  description: 'A modern blog for the modern developer',
-}
 
 export default function RootLayout({
   children,
@@ -18,9 +16,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} bg-gray-100`}>
-        <Header />
-        <main>{children}</main>
-        <Footer />
+        <SessionProvider>
+            <Header />
+            <main>{children}</main>
+            <Footer />
+        </SessionProvider>
       </body>
     </html>
   )

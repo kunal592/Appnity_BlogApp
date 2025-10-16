@@ -1,67 +1,73 @@
-import Link from 'next/link'
 import { getPosts } from '@/lib/data'
-import Image from 'next/image'
-import { format } from 'date-fns'
+import PostCard from '@/components/PostCard'
+import Link from 'next/link'
+import { ArrowLeft, ArrowRight, Search } from 'lucide-react'
 
-export default async function HomePage() {
-  const posts = await getPosts()
+export default async function Home({ searchParams }: { searchParams: { page?: string, query?: string } }) {
+  const page = Number(searchParams.page) || 1
+  const query = searchParams.query || ''
+  const { posts, total } = await getPosts({ page, query })
+  const totalPages = Math.ceil(total / 6)
 
   return (
-    <div className="bg-gray-50 font-sans">
-      <div className="container mx-auto px-6 py-12">
-        <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-7xl font-extrabold text-gray-900 leading-tight">
-            <span className="block">Welcome to Our Blog</span>
-            <span className="block text-blue-600">Insights & Stories</span>
-          </h1>
-          <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-600">
-            Discover the latest articles on technology, design, and more. 
-            Updated weekly.
-          </p>
+    <div>
+      {/* Hero Section */}
+      <div className="bg-gray-900 text-white">
+        <div className="container mx-auto px-6 py-24 text-center">
+          <h1 className="text-5xl md:text-6xl font-extrabold leading-tight">Welcome to Appnity Blog</h1>
+          <p className="text-xl text-gray-400 mt-4 max-w-3xl mx-auto">Your daily dose of the latest in web development, design, and technology. Stay curious.</p>
+        </div>
+      </div>
+
+      {/* Search and Blog Grid */}
+      <div className="container mx-auto px-6 py-16">
+        <div className="mb-12">
+            <form className="max-w-md mx-auto">
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <Search className="w-5 h-5 text-gray-500" />
+                    </div>
+                    <input
+                        type="search"
+                        name="query"
+                        defaultValue={query}
+                        placeholder="Search for articles..."
+                        className="block w-full p-4 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <button type="submit" className="text-white absolute right-2.5 bottom-2.5 bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2">
+                        Search
+                    </button>
+                </div>
+            </form>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {posts.map((post) => (
-            <div key={post.id} className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out overflow-hidden transform hover:-translate-y-1">
-              <Link href={`/post/${post.id}`}>
-                  <div className="relative h-56">
-                    <Image
-                      src={post.thumbnailUrl || 'https://picsum.photos/seed/picsum/800/400'}
-                      alt={post.title}
-                      layout="fill"
-                      objectFit="cover"
-                      className="transition-transform duration-300 ease-in-out hover:scale-105"
-                    />
-                  </div>
-                  <div className="p-6">
-                    <div className="mb-4">
-                      {post.tags.map(({ tag }) => (
-                        <span key={tag.id} className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">
-                          {tag.name}
-                        </span>
-                      ))}
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-3 leading-tight hover:text-blue-600 transition-colors duration-200">{post.title}</h2>
-                    <p className="text-gray-600 mb-4 h-24 overflow-hidden">{post.content.substring(0, 100)}...</p>
-                    <div className="flex items-center mt-6">
-                      <Image
-                        src={post.author.image || 'https://i.pravatar.cc/150'}
-                        alt={post.author.name || 'User'}
-                        width={40}
-                        height={40}
-                        className="rounded-full"
-                      />
-                      <div className="ml-4">
-                        <p className="text-sm font-semibold text-gray-900">{post.author.name}</p>
-                        <p className="text-sm text-gray-500">{format(new Date(post.createdAt), 'PPP')}</p>
-                      </div>
-                    </div>
-                  </div>
-              </Link>
-            </div>
+          {posts.map(post => (
+            <PostCard key={post.id} post={post} />
           ))}
         </div>
       </div>
+      
+      {/* Pagination */}
+        <div className="flex justify-center items-center space-x-6 my-10">
+            <Link href={`/?page=${page > 1 ? page - 1 : 1}&query=${query}`}>
+              <div className={`flex items-center px-4 py-2 rounded-lg transition-colors ${page > 1 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
+                  <ArrowLeft className="w-5 h-5 mr-2" />
+                  <span>Previous</span>
+              </div>
+            </Link>
+            
+            <span className="text-gray-700">
+              Page {page} of {totalPages}
+            </span>
+
+            <Link href={`/?page=${page < totalPages ? page + 1 : totalPages}&query=${query}`}>
+              <div className={`flex items-center px-4 py-2 rounded-lg transition-colors ${page < totalPages ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
+                  <span>Next</span>
+                  <ArrowRight className="w-5 h-5 ml-2" />
+              </div>
+            </Link>
+        </div>
     </div>
   )
 }
