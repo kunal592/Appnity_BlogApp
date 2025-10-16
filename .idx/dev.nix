@@ -11,7 +11,11 @@
     pkgs.bun
   ];
   # Sets environment variables in the workspace
-  env = {};
+  env = {
+    GITHUB_ID = "your-github-id";
+    GITHUB_SECRET = "your-github-secret";
+    NEXTAUTH_SECRET = "your-nextauth-secret";
+  };
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
     extensions = [

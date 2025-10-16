@@ -55,9 +55,8 @@ model User {
 
  username String? @unique
  name String?
+ image String?
  bio String?
-
- profileImage String?
 
  socialLinks Json? // { twitter: "...", github: "...", linkedin: "..." }
 
@@ -105,7 +104,7 @@ model Post {
  isFeatured Boolean @default(false)
  readingTime Int? // minutes estimate
 
- postTags PostTag[] // relation field for explicit join table
+ tags PostTag[]
 
  likes Like[]
 
@@ -146,19 +145,12 @@ model Tag {
 }
 
 model PostTag {
- id String @id @default(uuid())
-
- post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
  postId String
-
- tag Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
  tagId String
+ post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+ tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
- createdAt DateTime @default(now())
-
- @@unique([postId, tagId])
- @@index([tagId])
- @@index([postId])
+ @@id([postId, tagId])
 }
 
 model Comment {

@@ -1,12 +1,19 @@
 'use client'
 
 import { useFormState, useFormStatus } from 'react-dom'
-import { createPost } from '@/app/actions'
+import { updatePost } from '@/app/actions'
 import { useSession } from 'next-auth/react'
-import RichTextEditor from '@/components/RichTextEditor.tsx'
-import { useState } from 'react'
+import RichTextEditor from '@/components/RichTextEditor'
+import { useState, useEffect } from 'react'
 import { Settings, X } from 'lucide-react'
-import TagInput from '@/components/TagInput'
+import { getPost } from '@/lib/data'
+
+import type { Post, Tag, User } from '@prisma/client'
+
+type PostWithRelations = Post & {
+  author: User
+  tags: { tag: Tag }[]
+}
 
 const initialState = {
   message: null,
@@ -22,33 +29,44 @@ function SubmitButton() {
       aria-disabled={pending}
       className="bg-blue-600 text-white px-8 py-3 rounded-md disabled:bg-gray-400 font-semibold text-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
     >
-      Publish Post
+      Update Post
     </button>
   )
 }
 
-export default function NewPost() {
+export default function EditPost({ params }: { params: { id: string } }) {
   const { data: session } = useSession()
-  const [state, formAction] = useFormState(createPost, initialState)
+  const [state, formAction] = useFormState(updatePost, initialState)
+  const [post, setPost] = useState<PostWithRelations | null>(null)
   const [content, setContent] = useState('')
-  const [tags, setTags] = useState<string[]>([])
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
-  if (!session) {
-    return <div className="container mx-auto px-6 py-12 text-center">You must be signed in to create a post.</div>
+  useEffect(() => {
+    getPost(params.id).then(data => {
+        setPost(data)
+        setContent(data.content)
+    })
+  }, [params.id])
+
+  if (!session || session.user.id !== post?.authorId) {
+    return <div className="container mx-auto px-6 py-12 text-center">You are not authorized to edit this post.</div>
+  }
+  
+  if (!post) {
+    return <div>Loading...</div>
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <form action={formAction}>
+        <input type="hidden" name="id" value={post.id} />
         <input type="hidden" name="authorId" value={session.user.id} />
         <input type="hidden" name="content" value={content} />
-        <input type="hidden" name="tags" value={JSON.stringify(tags)} />
         
         <header className="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-10">
           <div className="container mx-auto px-6 py-4 flex justify-between items-center">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">New Post</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Edit Post</h1>
             </div>
             <div className="flex items-center space-x-4">
               <button
@@ -76,6 +94,7 @@ export default function NewPost() {
                   placeholder="Enter post title here..."
                   className="w-full text-5xl font-extrabold text-gray-900 placeholder-gray-400 bg-transparent border-none focus:ring-0"
                   aria-describedby="title-error"
+                  defaultValue={post.title}
                 />
                 <div id="title-error" aria-live="polite" aria-atomic="true">
                   {state.errors?.title &&
@@ -110,29 +129,26 @@ export default function NewPost() {
               <div className="space-y-6">
                 <div>
                   <label htmlFor="slug" className="block text-sm font-medium text-gray-700">URL Slug</label>
-                  <input type="text" name="slug" id="slug" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
-                </div>
-                <div>
-                    <TagInput value={tags} onChange={setTags} />
+                  <input type="text" name="slug" id="slug" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" defaultValue={post.slug} />
                 </div>
                 <div>
                   <label htmlFor="excerpt" className="block text-sm font-medium text-gray-700">Excerpt</label>
-                  <textarea name="excerpt" id="excerpt" rows={3} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                  <textarea name="excerpt" id="excerpt" rows={3} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" defaultValue={post.excerpt || ''}></textarea>
                 </div>
                 <div>
-                  <label htmlFor="thumbnail" className="block text-sm font-medium text-gray-.700">Thumbnail Image URL</label>
-                  <input type="text" name="thumbnail" id="thumbnail" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+                  <label htmlFor="thumbnail" className="block text-sm font-medium text-gray-700">Thumbnail Image URL</label>
+                  <input type="text" name="thumbnail" id="thumbnail" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" defaultValue={post.thumbnailUrl || ''} />
                 </div>
                  <div>
                   <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
-                  <select id="status" name="status" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                  <select id="status" name="status" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" defaultValue={post.status}>
                     <option value="PUBLISHED">Published</option>
                     <option value="DRAFT">Draft</option>
                   </select>
                 </div>
                  <div>
                   <label htmlFor="visibility" className="block text-sm font-medium text-gray-700">Visibility</label>
-                  <select id="visibility" name="visibility" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                  <select id="visibility" name="visibility" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" defaultValue={post.visibility}>
                     <option value="PUBLIC">Public</option>
                     <option value="UNLISTED">Unlisted</option>
                      <option value="PRIVATE">Private</option>

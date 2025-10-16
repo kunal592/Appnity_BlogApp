@@ -1,45 +1,47 @@
-# Blog SaaS Website Blueprint
+# Appnity Blog - Blueprint
 
 ## Overview
 
-This document outlines the plan and features for a blog SaaS website. The application will be built using Next.js, Prisma, and NextAuth.js, and will include a rich set of features for content creation, social interaction, and user management.
+A modern, responsive blog application built with Next.js and Tailwind CSS. The blog fetches and displays posts from a database and provides a clean and intuitive user experience.
 
-## Implemented Features
+## Project Structure
 
-*   **User Authentication:**
-    *   Google OAuth with `next-auth`.
-    *   Session management with user ID included in the session data.
-    *   Prisma adapter for NextAuth to connect to the database.
-*   **Core Blog Features:**
-    *   Post creation with title and content.
-    *   Server-side rendering of posts on the homepage.
-    *   Posts are associated with their authors.
-*   **Design and UI:**
-    *   **Modern and Responsive Layout:** A visually appealing and mobile-friendly design.
-    *   **Dynamic Hero Section:** An engaging hero section with a headline, description, and call-to-action buttons.
-    *   **Enhanced Post Cards:** Redesigned post cards with featured image placeholders, author avatars, and publication dates.
-    *   **"Featured Posts" Section:** A dedicated section to highlight popular articles.
-    *   **Refined Styling:** A sophisticated color palette, improved typography, and subtle animations.
-    *   A consistent header and footer across all pages.
-    *   A homepage that displays a welcome message and a grid of the latest posts.
-    *   A dedicated page for creating new posts with a form that includes validation and feedback.
+- `src/app`: Main application logic and routing.
+- `src/components`: Reusable React components.
+- `src/lib`: Utility functions and data fetching logic.
+
+## Design and Features
+
+### General
+
+- **Responsive Design:** The layout adapts to different screen sizes, providing a seamless experience on mobile and desktop.
+- **Modern Aesthetics:** The UI is designed with a modern and clean look and feel, using a consistent color palette and typography.
+- **Header and Footer:** A consistent header and footer are present on all pages.
+
+### Home Page
+
+- **Hero Section:** A prominent hero section welcomes users to the blog.
+- **Blog Post Grid:** Blog posts are displayed in a responsive grid layout.
+- **Post Cards:** Each post is represented by a card that includes:
+  - Thumbnail image
+  - Tags
+  - Title
+  - Excerpt
+  - Author information (name and image)
+  - Publication date
 
 ## Current Plan
 
-### 1. Core Blog Features
+### Implemented
 
-*   Implement **Update** and **Delete** functionality for posts.
-*   Create user profile pages to display user information and their posts.
-*   Implement a tagging system for posts to categorize content.
-*   Create individual post pages with full content and details.
+- Set up the basic project structure.
+- Created a modern and responsive home page that fetches and displays blog posts from a database.
+- Updated the `Header` and `Footer` components to match the new design.
 
-### 2. Social Features
+### Next Steps
 
-*   Implement "likes" for posts.
-*   Implement a comment system for posts, with support for nested replies.
-*   Implement user-to-user follows.
-*   Allow users to bookmark their favorite posts.
-
-### 3. Notifications
-
-*   Create a notification system to alert users to new likes, comments, and followers.
+- Create a detailed view for individual blog posts.
+- Implement user authentication to allow for creating and editing posts.
+- Add an "About" page.
+- Implement pagination for the blog posts on the home page.
+- Add a search functionality to find posts.
