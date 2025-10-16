@@ -69,11 +69,13 @@ model User {
  likes Like[]
 
  bookmarks Bookmark[]
+ shares Share[]
 
  followsGiven Follow[] @relation("follower")
  followsReceived Follow[] @relation("following")
 
  notifications Notification[] @relation("notificationsReceived")
+ notificationsSent Notification[] @relation("notificationsSent")
 
  payments Payment[]
 
@@ -271,7 +273,7 @@ model Notification {
  recipient User @relation("notificationsReceived", fields: [recipientId], references: [id], onDelete: Cascade)
  recipientId String
 
- actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+ actor User? @relation("notificationsSent", fields: [actorId], references: [id], onDelete: SetNull)
  actorId String?
 
  type NotificationType
